@@ -1,6 +1,6 @@
 ---
 - name: Include OS-specific tasks
-  ansible.builtin.include_tasks: "{{ lookup('ansuble.builtin.first_found', params) }}"
+  ansible.builtin.include_tasks: "{{ lookup('ansible.builtin.first_found', params) }}"
   vars:
     params:
       files:
