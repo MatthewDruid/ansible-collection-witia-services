@@ -1,0 +1,16 @@
+---
+- name: "Start nginx service"
+  ansible.builtin.service:
+    name: nginx
+    state: started
+
+- name: "Validate nginx config"
+  ansible.builtin.command: "nginx -t"
+  notify: "Reload nginx service"
+  changed_when: false
+
+- name: "Reload nginx service"
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+

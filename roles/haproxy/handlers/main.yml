@@ -1,0 +1,11 @@
+---
+- name: "Start haproxy service"
+  ansible.builtin.service:
+    name: haproxy
+    state: started
+
+- name: "Restart haproxy service"
+  ansible.builtin.service:
+    name: haproxy
+    state: restarted
+

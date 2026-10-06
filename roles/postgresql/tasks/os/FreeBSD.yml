@@ -1,0 +1,96 @@
+---
+- name: Install PostgreSQL 18 packages
+  ansible.builtin.package:
+    name:
+      - postgresql18-contrib
+      - postgresql18-pgvector
+      - postgresql18-server
+      - timescaledb
+      - py{{ ansible_facts.python.version.major }}{{ ansible_facts.python.version.minor }}-psycopg2
+    state: present
+
+- name: Configure rc.conf
+  community.general.sysrc:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+  loop:
+    - name: postgresql_data
+      value: "{{ postgresql.datadir }}"
+    - name: postgresql_initdb_flags
+      value: "--no-locale --encoding=UTF-8 --auth-local=peer --auth-host=scram-sha-256"
+
+- name: Enable service
+  ansible.builtin.service:
+    name: postgresql
+    enabled: true
+
+- name: Initialize database
+  ansible.builtin.command:
+    cmd: service postgresql initdb
+    creates: "{{ postgresql.datadir }}/PG_VERSION"
+
+- name: Start postgresql
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+
+- name: Configure postgresql
+  become: true
+  become_user: postgres
+  block:
+    - name: Listen on specified address (default all)
+      community.postgresql.postgresql_alter_system:
+        param: listen_addresses
+        value: "{{ postgresql.listen_addresses | default('*') }}"
+
+    - name: Preload TimescaleDB
+      community.postgresql.postgresql_alter_system:
+        param: shared_preload_libraries
+        value: "timescaledb"
+  notify: Restart postgresql
+
+- name: Configure pg_hba rules
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_pg_hba:
+    dest: "{{ postgresql.datadir }}/pg_hba.conf"
+    contype: "{{ item.contype }}"
+    databases: "{{ item.databases | default('all') }}"
+    users: "{{ item.users | default('all') }}"
+    source: "{{ item.source | default(omit) }}"
+    method: "{{ item.method | default('scram-sha-256') }}"
+  loop: "{{ postgresql.pg_hba_rules }}"
+  notify: Reload postgresql
+
+- name: Apply restart/reload
+  ansible.builtin.meta: flush_handlers
+
+- name: Create users
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | default(omit) }}"
+    role_attr_flags: "{{ item.flags | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ postgresql.users }}"
+  no_log: true
+
+- name: Create databases
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner }}"
+  loop: "{{ postgresql.databases }}"
+
+- name: Create extensions
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_ext:
+    name: "{{ item.1 }}"
+    login_db: "{{ item.0.name }}"
+  loop: "{{ postgresql.databases | subelements('extensions', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.0.name }}: {{ item.1 }}"
+

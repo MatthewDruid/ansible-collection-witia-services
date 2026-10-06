@@ -1,0 +1,17 @@
+---
+postgresql:
+  datadir: "/var/db/postgres/data18"
+  listen_addresses: "*"
+  users:
+    - name: appuser
+      password: "secretpassword"
+  databases:
+    - name: appdb
+      owner: appuser
+      extensions: [timescaledb, vector]
+  pg_hba_rules:
+    - contype: host
+      databases: appdb
+      users: appuser
+      source: 10.0.0.0/24
+

@@ -1,0 +1,10 @@
+---
+- name: Include OS-specific tasks
+  ansible.builtin.include_tasks: "{{ lookup('ansuble.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_facts.distribution }}.yml"
+        - "{{ ansible_facts.system }}.yml"
+      paths:
+        - tasks/os

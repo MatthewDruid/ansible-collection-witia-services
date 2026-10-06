@@ -1,0 +1,55 @@
+---
+- name: Install php84 packages
+  ansible.builtin.package:
+    name: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('php8.4', 'php84') }}-{{ item }}"
+    state: present
+  loop: "{{ php.extensions }}"
+
+- name: Configure php84
+  block:
+    - name: Deploy php.ini
+      ansible.builtin.copy:
+        dest: "{{ (ansible_facts['os_family'] == 'FreeBSD') | ternary('/usr/local/etc', '/etc/php/8.4/fpm') }}/php.ini"
+        src: "{{ php.config_file | default('php.ini') }}"
+        owner: root
+        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('root', 'wheel') }}"
+        mode: '0644'
+
+    - name: Deploy php-fpm.conf
+      ansible.builtin.template:
+        dest: "{{ (ansible_facts['os_family'] == 'FreeBSD') | ternary('/usr/local/etc', '/etc/php/8.4/fpm') }}/php-fpm.conf"
+        src: "{{ php.fpm.config_file | default('php-fpm.conf.j2') }}"
+        owner: root
+        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('root', 'wheel') }}"
+        mode: '0644'
+
+    - name: Deploy php-fpm pools
+      ansible.builtin.copy:
+        dest: "{{ (ansible_facts['os_family'] == 'FreeBSD') | ternary('/usr/local/etc/php-fpm.d/', '/etc/php/8.4/fpm/pool.d/') }}"
+        src: "{{ item }}"
+        owner: root
+        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('root', 'wheel') }}"
+        mode: '0644'
+      with_fileglob:
+        - "{{ php.fpm.pools_path | default('php-fpm.d/') }}"
+
+    - name: "Create /var/run/php"
+      ansible.builtin.file:
+        path: /var/run/php
+        state: directory
+        owner: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('www-data', 'www') }}"
+        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('www-data', 'www') }}"
+
+    - name: "Create /var/log/php"
+      ansible.builtin.file:
+        path: /var/log/php
+        state: directory
+        owner: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('www-data', 'www') }}"
+        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('www-data', 'www') }}"
+
+- name: Enable php-fpm service
+  ansible.builtin.service:
+    name: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('php8.4-fpm', 'php_fpm') }}"
+    enabled: true
+  notify: "Restart php-fpm service"
+

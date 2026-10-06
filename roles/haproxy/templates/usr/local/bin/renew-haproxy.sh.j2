@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+umask 0077
+
+DOMAIN="{{ haproxy.fqdn }}"
+
+{% if ansible_facts["os_family"] == "FreeBSD" %}
+CERT_DIR="/usr/local/etc/letsencrypt/live/${DOMAIN}"
+{% else %}
+CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
+{% endif %}
+
+HAPROXY_CERT_DIR="/usr/local/etc/haproxy/certs"
+TARGET_FILE="${HAPROXY_CERT_DIR}/${DOMAIN}.pem"
+
+cat "${CERT_DIR}/fullchain.pem" "${CERT_DIR}/privkey.pem" > ${TARGET_FILE}
+
+{% if ansible_facts["os_family"] == "FreeBSD" %}
+service haproxy reload
+{% else %}
+systemctl reload haproxy
+{% endif %}
+

@@ -1,0 +1,23 @@
+---
+- name: Install HAProxy
+  ansible.builtin.package:
+    name: haproxy
+    state: present
+
+- name: "Enable haproxy service"
+  ansible.builtin.service:
+    name: haproxy
+    enabled: true
+  notify: "Start haproxy service"
+
+- name: Configure HAProxy
+  block:
+    - name: Copy configuration
+      ansible.builtin.copy:
+        dest: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('/usr/local', '') }}/etc/haproxy.conf"
+        src: "{{ haproxy.config_file }}"
+        owner: root
+        group: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('wheel', 'root') }}"
+        mode: '0644'
+  notify: "Restart haproxy service"
+

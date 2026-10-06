@@ -1,0 +1,59 @@
+---
+- name: Install Nginx
+  ansible.builtin.package:
+    name: nginx
+    state: present
+
+- name: Enable Nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+  notify: "Start nginx service"
+
+- name: Configure nginx
+  block:
+    - name: "Deploy main config"
+      ansible.builtin.template:
+        dest: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('/usr/local/etc/nginx/nginx.conf', '/etc/nginx/nginx.conf') }}"
+        src: "{{ nginx.config_template | default('nginx.conf.j2') }}"
+        owner: root
+        group: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('wheel', 'root') }}"
+        mode: '0644'
+
+    - name: "Ensures conf.d exists"
+      ansible.builtin.file:
+        path: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('/usr/local/etc/nginx/conf.d', '/etc/nginx/conf.d') }}"
+        state: directory
+        owner: root
+        group: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('wheel', 'root') }}"
+
+    - name: Deploy additional config files
+      ansible.builtin.copy:
+        dest: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('/usr/local/etc/nginx/conf.d/', '/etc/nginx/conf.d/') }}"
+        src: "{{ item }}"
+        owner: root
+        group: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('wheel', 'root') }}"
+        mode: '0644'
+        force: true
+      with_fileglob: "{{ nginx.conf_path }}/*"
+      when: nginx.conf_path is defined
+
+    - name: "Ensures sites.d exists"
+      ansible.builtin.file:
+        path: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('/usr/local/etc/nginx/sites.d', '/etc/nginx/sites.d') }}"
+        state: directory
+        owner: root
+        group: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('wheel', 'root') }}"
+
+    - name: Deploy sites config files
+      ansible.builtin.copy:
+        dest: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('/usr/local/etc/nginx/sites.d/', '/etc/nginx/sites.d') }}"
+        src: "{{ item }}"
+        owner: root
+        group: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('wheel', 'root') }}"
+        mode: '0644'
+        force: true
+      with_fileglob: "{{ nginx.sites_path }}/*"
+      when: nginx.sites_path is defined
+  notify: "Validate nginx config"
+

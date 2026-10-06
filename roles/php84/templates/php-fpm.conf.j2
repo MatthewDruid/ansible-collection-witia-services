@@ -1,0 +1,10 @@
+[global]
+pid = /var/run/php-fpm.pid
+
+error_log = /var/log/php-fpm.log
+
+{% if ansible_facts["os_family"] == "Debian" %}
+include=/etc/php/8.4/fpm/pool.d/*.conf
+{% elif ansible_facts["os_family"] == "FreeBSD" %}
+include=/usr/local/etc/php-fpm.d/*.conf
+{% endif %}

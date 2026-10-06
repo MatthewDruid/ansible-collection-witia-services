@@ -1,0 +1,94 @@
+---
+- name: Copy cloudflare credentials file
+  ansible.builtin.copy:
+    dest: /usr/local/etc/certbot.conf
+    content: "dns_cloudflare_api_token = {{ haproxy.dns_cloudflare_api_token }}"
+    owner: root
+    group: wheel
+    mode: "0600"
+    force: true
+
+- name: Install renew script
+  block:
+    - name: Ensure etc/haproxy directory exists
+      ansible.builtin.file:
+        path: /usr/local/etc/haproxy
+        state: directory
+        owner: root
+        group: wheel
+        mode: '0755'
+
+    - name: Ensure etc/haproxy/certs directory exists
+      ansible.builtin.file:
+        path: /usr/local/etc/haproxy/certs
+        state: directory
+        owner: root
+        group: wheel
+        mode: '0700'
+
+- name: Install and configure certbot on FreeBSD
+  block:
+    - name: Install certbot
+      community.general.pkgng:
+        name:
+          - security/py-certbot
+          - security/py-certbot-dns-cloudflare
+        state: present
+
+    - name: Register and accept Let's Encrypt TOS
+      ansible.builtin.command:
+        cmd: "certbot -n register --agree-tos --email {{ haproxy.certbot_email }}"
+        creates: /usr/local/etc/letsencrypt/accounts/
+
+    - name: Enable weekly certbot renewal
+      community.general.sysrc:
+        path: /etc/periodic.conf
+        name: "weekly_certbot_enable"
+        value: "YES"
+
+    - name: Deploy renew-haproxy.sh script
+      ansible.builtin.template:
+        dest: "/usr/local/etc/letsencrypt/renewal-hooks/deploy/renew-haproxy.sh"
+        src: "{{ haproxy.renew_script | default('usr/local/bin/renew-haproxy.sh.j2') }}"
+        owner: root
+        group: wheel
+        mode: '0755'
+
+    - name: Get a certificate from Let's Encrypt
+      ansible.builtin.command:
+        cmd: "certbot -n certonly --dns-cloudflare --dns-cloudflare-credentials /usr/local/etc/certbot.conf -d {{ haproxy.fqdn }} -d \\*.{{ haproxy.fqdn }}"
+        creates: "/usr/local/etc/letsencrypt/live/{{ haproxy.fqdn }}"
+  when: ansible_facts["os_family"] == "FreeBSD"
+
+- name: Install and configure certbot on Linux
+  block:
+    - name: Install certbot
+      ansible.builtin.package:
+        name:
+          - certbot
+          - python3-certbot-dns-cloudflare
+        state: present
+
+    - name: Register and accept Let's Encrypt TOS
+      ansible.builtin.command:
+        cmd: "certbot -n register --agree-tos --email {{ haproxy.certbot_email }}"
+        creates: /etc/letsencrypt/accounts/
+
+    - name: Enable the Certbot timer
+      ansible.builtin.service:
+        name: certbot.timer
+        enabled: true
+
+    - name: Deploy renew-haproxy.sh script
+      ansible.builtin.template:
+        dest: "/etc/letsencrypt/renewal-hooks/deploy/renew-haproxy.sh"
+        src: "{{ haproxy.renew_script | default('usr/local/bin/renew-haproxy.sh.j2') }}"
+        owner: root
+        group: wheel
+        mode: '0755'
+
+    - name: Get a certificate from Let's Encrypt
+      ansible.builtin.command:
+        cmd: "/usr/bin/certbot -n certonly --dns-cloudflare --dns-cloudflare-credentials /usr/local/etc/certbot.conf -d {{ haproxy.fqdn }} -d '*.{{ haproxy.fqdn }}"
+        creates: "/etc/letsencrypt/live/{{ haproxy.fqdn }}"
+  when: ansible_facts["system"] == "Linux"

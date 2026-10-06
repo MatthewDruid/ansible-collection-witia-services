@@ -1,0 +1,48 @@
+---
+php:
+  extensions:
+    - bcmath
+    - calendar
+    - composer
+    - ctype
+    - curl
+    - dom
+    - exif
+    - extensions
+    - fileinfo
+    - filter
+    - ftp
+    - gd
+    - gmp
+    - iconv
+    - intl
+    - mbstring
+    - mysqli
+    - opcache
+    - pdo
+    - pdo_mysql
+    - pdo_pgsql
+    - pdo_sqlite
+    - pecl-amqp
+    - pecl-imagick
+    - pecl-mongodb
+    - pecl-redis
+    - phar
+    - posix
+    - session
+    - simplexml
+    - soap
+    - sockets
+    - sodium
+    - sqlite3
+    - sysvmsg
+    - sysvsem
+    - sysvshm
+    - tokenizer
+    - xml
+    - xmlreader
+    - xmlwriter
+    - xsl
+    - zip
+    - zlib
+
