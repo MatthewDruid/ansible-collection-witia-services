@@ -2,7 +2,7 @@
 - name: Reload postgresql
   ansible.builtin.service:
     name: postgresql
-    state: reload
+    state: reloaded
 
 - name: Restart postgresql
   ansible.builtin.service:
