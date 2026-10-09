@@ -10,14 +10,13 @@
     enabled: true
   notify: "Start haproxy service"
 
-- name: Configure HAProxy
-  block:
-    - name: Copy configuration
-      ansible.builtin.copy:
-        dest: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('/usr/local', '') }}/etc/haproxy.conf"
-        src: "{{ haproxy.config_file }}"
-        owner: root
-        group: "{{ (ansible_facts['system'] == 'FreeBSD') | ternary('wheel', 'root') }}"
-        mode: '0644'
+- name: Copy HAProxy configuration
+  ansible.builtin.copy:
+    dest: "{{ (ansible_facts.system == 'FreeBSD') | ternary('/usr/local', '') }}/etc/haproxy.conf"
+    src: "{{ haproxy.config_file }}"
+    owner: root
+    group: "{{ (ansible_facts.system == 'FreeBSD') | ternary('wheel', 'root') }}"
+    mode: '0644'
+    validate: haproxy -c -f %s
   notify: "Restart haproxy service"
 

@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+
+umask 0077
+
+DOMAIN="${RENEWED_LINEAGE##*/}"
+
+HAPROXY_CERT_DIR="/usr/local/etc/haproxy/certs"
+TARGET_FILE="${HAPROXY_CERT_DIR}/${DOMAIN}.pem"
+
+cat "${RENEWED_LINEAGE}/fullchain.pem" "${RENEWED_LINEAGE}/privkey.pem" > ${TARGET_FILE}
+
+{% if ansible_facts["os_family"] == "FreeBSD" %}
+service haproxy reload
+{% else %}
+systemctl reload haproxy
+{% endif %}
+

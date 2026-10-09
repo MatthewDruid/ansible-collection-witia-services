@@ -1,0 +1,65 @@
+---
+- name: Copy cloudflare credentials file
+  ansible.builtin.copy:
+    dest: /usr/local/etc/certbot.conf
+    content: "dns_cloudflare_api_token = {{ certbot.dns_cloudflare_api_token }}"
+    owner: root
+    group: wheel
+    mode: "0600"
+    force: true
+
+- name: Prepare for haproxy renew script
+  block:
+    - name: Ensure etc/haproxy directory exists
+      ansible.builtin.file:
+        path: /usr/local/etc/haproxy
+        state: directory
+        owner: root
+        group: wheel
+        mode: '0755'
+
+    - name: Ensure etc/haproxy/certs directory exists
+      ansible.builtin.file:
+        path: /usr/local/etc/haproxy/certs
+        state: directory
+        owner: root
+        group: wheel
+        mode: '0700'
+
+- name: Install certbot
+  ansible.builtin.package:
+    name:
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+
+- name: Register and accept Let's Encrypt TOS
+  ansible.builtin.command:
+    cmd: "certbot -n register --agree-tos --email {{ certbot.email }}"
+    creates: /etc/letsencrypt/accounts/
+
+- name: Enable the Certbot timer
+  ansible.builtin.service:
+    name: certbot.timer
+    enabled: true
+
+- name: Deploy renew-haproxy.sh script
+  ansible.builtin.template:
+    dest: "/etc/letsencrypt/renewal-hooks/deploy/renew-haproxy.sh"
+    src: "renew-haproxy.sh.j2"
+    owner: root
+    group: wheel
+    mode: '0755'
+
+- name: Get a certificates with subdomains
+  ansible.builtin.command:
+    cmd: "certbot -n certonly --dns-cloudflare --dns-cloudflare-credentials /usr/local/etc/certbot.conf -d {{ item.fqdn }} -d \\*.{{ item.fqdn }}"
+    creates: "/etc/letsencrypt/live/{{ item.fqdn }}"
+  loop: "{{ certbot_fqdns_with_subdomains }}"
+
+- name: Get a certificates without subdomains
+  ansible.builtin.command:
+    cmd: "certbot -n certonly --dns-cloudflare --dns-cloudflare-credentials /usr/local/etc/certbot.conf -d {{ item.fqdn }}"
+    creates: "/etc/letsencrypt/live/{{ item.fqdn }}"
+  loop: "{{ certbot_fqdns_without_subdomains }}"
+

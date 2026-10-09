@@ -1,0 +1,7 @@
+---
+certbot_fqdns: "{{ certbot.fqdns | default([]) }}"
+certbot_fqdns_with_subdomains: >-
+  {{ certbot_fqdns | selectattr('subdomains', 'defined') | selectattr('subdomains', 'true') }}
+certbot_fqdns_without_subdomains: >-
+  {{ certbot_fqdns | difference(certbot_fqdns_with_subdomains) }}
+

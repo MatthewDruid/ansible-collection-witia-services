@@ -12,7 +12,7 @@
         dest: "{{ (ansible_facts['os_family'] == 'FreeBSD') | ternary('/usr/local/etc', '/etc/php/8.4/fpm') }}/php.ini"
         src: "{{ php.config_file | default('php.ini') }}"
         owner: root
-        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('root', 'wheel') }}"
+        group: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('root', 'wheel') }}"
         mode: '0644'
 
     - name: Deploy php-fpm.conf
@@ -20,7 +20,7 @@
         dest: "{{ (ansible_facts['os_family'] == 'FreeBSD') | ternary('/usr/local/etc', '/etc/php/8.4/fpm') }}/php-fpm.conf"
         src: "{{ php.fpm.config_file | default('php-fpm.conf.j2') }}"
         owner: root
-        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('root', 'wheel') }}"
+        group: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('root', 'wheel') }}"
         mode: '0644'
 
     - name: Deploy php-fpm pools
@@ -28,7 +28,7 @@
         dest: "{{ (ansible_facts['os_family'] == 'FreeBSD') | ternary('/usr/local/etc/php-fpm.d/', '/etc/php/8.4/fpm/pool.d/') }}"
         src: "{{ item }}"
         owner: root
-        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('root', 'wheel') }}"
+        group: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('root', 'wheel') }}"
         mode: '0644'
       with_fileglob:
         - "{{ php.fpm.pools_path | default('php-fpm.d/') }}"
@@ -37,15 +37,15 @@
       ansible.builtin.file:
         path: /var/run/php
         state: directory
-        owner: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('www-data', 'www') }}"
-        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('www-data', 'www') }}"
+        owner: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('www-data', 'www') }}"
+        group: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('www-data', 'www') }}"
 
     - name: "Create /var/log/php"
       ansible.builtin.file:
         path: /var/log/php
         state: directory
-        owner: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('www-data', 'www') }}"
-        group: "{{ (ansible_facts['os_family'] == 'Debian) | ternary('www-data', 'www') }}"
+        owner: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('www-data', 'www') }}"
+        group: "{{ (ansible_facts['os_family'] == 'Debian') | ternary('www-data', 'www') }}"
 
 - name: Enable php-fpm service
   ansible.builtin.service:
