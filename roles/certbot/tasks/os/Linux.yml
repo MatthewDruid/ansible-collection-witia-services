@@ -4,7 +4,7 @@
     dest: /usr/local/etc/certbot.conf
     content: "dns_cloudflare_api_token = {{ certbot.dns_cloudflare_api_token }}"
     owner: root
-    group: wheel
+    group: root
     mode: "0600"
     force: true
 
@@ -15,7 +15,7 @@
         path: /usr/local/etc/haproxy
         state: directory
         owner: root
-        group: wheel
+        group: root
         mode: '0755'
 
     - name: Ensure etc/haproxy/certs directory exists
@@ -23,7 +23,7 @@
         path: /usr/local/etc/haproxy/certs
         state: directory
         owner: root
-        group: wheel
+        group: root
         mode: '0700'
 
 - name: Install certbot
@@ -40,7 +40,7 @@
 
 - name: Enable the Certbot timer
   ansible.builtin.service:
-    name: certbot.timer
+    name: "{{ (ansible_facts.os_family == 'RedHat') | ternary('certbot-renew.timer', 'certbot.timer') }}"
     enabled: true
 
 - name: Deploy renew-haproxy.sh script
@@ -48,7 +48,7 @@
     dest: "/etc/letsencrypt/renewal-hooks/deploy/renew-haproxy.sh"
     src: "renew-haproxy.sh.j2"
     owner: root
-    group: wheel
+    group: root
     mode: '0755'
 
 - name: Get a certificates with subdomains

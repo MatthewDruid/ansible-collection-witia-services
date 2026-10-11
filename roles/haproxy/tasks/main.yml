@@ -1,22 +1,12 @@
 ---
-- name: Install HAProxy
-  ansible.builtin.package:
-    name: haproxy
-    state: present
-
-- name: "Enable haproxy service"
-  ansible.builtin.service:
-    name: haproxy
-    enabled: true
-  notify: "Start haproxy service"
-
-- name: Copy HAProxy configuration
-  ansible.builtin.copy:
-    dest: "{{ (ansible_facts.system == 'FreeBSD') | ternary('/usr/local', '') }}/etc/haproxy.conf"
-    src: "{{ haproxy.config_file }}"
-    owner: root
-    group: "{{ (ansible_facts.system == 'FreeBSD') | ternary('wheel', 'root') }}"
-    mode: '0644'
-    validate: haproxy -c -f %s
-  notify: "Restart haproxy service"
+- name: Include OS-specific tasks
+  ansible.builtin.include_tasks: "{{ lookup('ansible.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_facts.distribution }}.yml"
+        - "{{ ansible_facts.os_family }}.yml"
+        - "{{ ansible_facts.system }}.yml"
+      paths:
+        - tasks/os
 

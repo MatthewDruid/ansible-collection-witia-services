@@ -1,0 +1,22 @@
+---
+- name: Install HAProxy
+  ansible.builtin.package:
+    name: haproxy
+    state: present
+
+- name: "Enable haproxy service"
+  ansible.builtin.service:
+    name: haproxy
+    enabled: true
+  notify: "Start haproxy service"
+
+- name: Copy HAProxy configuration
+  ansible.builtin.copy:
+    dest: /etc/haproxy.conf
+    src: "{{ haproxy.config_file }}"
+    owner: root
+    group: root
+    mode: '0644'
+    validate: haproxy -c -f %s
+  notify: "Restart haproxy service"
+
